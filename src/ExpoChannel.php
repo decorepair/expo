@@ -6,26 +6,16 @@ use Exception;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\GuzzleException;
+use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\Http;
 use NotificationChannels\Expo\Exceptions\CouldNotSendNotification;
 
 class ExpoChannel
 {
-    /**
-     * The Http Client.
-     * @var Client
-     */
-    protected $client;
-
-    /**
-     * Initialise a new Expo Push Channel instance.
-     *
-     * @param Client $client
-     * @return void
-     */
-    public function __construct(Client $client)
+    public function __construct(protected string $accessToken)
     {
-        $this->client = $client;
     }
 
     /**
@@ -34,7 +24,8 @@ class ExpoChannel
      * @param mixed $notifiable
      * @param Notification $notification
      *
-     * @throws CouldNotSendNotification|GuzzleException
+     * @return mixed
+     * @throws CouldNotSendNotification
      */
     public function send($notifiable, Notification $notification)
     {
@@ -63,21 +54,27 @@ class ExpoChannel
         );
 
         try {
-            $response = $this->client->request(
-                'post',
-                'https://exp.host/--/api/v2/push/send',
-                ['json' => $messages]
-            );
+            $response = $this->client()->post('/', $messages)->throw();
 
-            if ($response->getStatusCode() !== 200) {
+            if ($response->status() !== 200) {
                 throw CouldNotSendNotification::serviceRespondedWithAnError($response);
             }
 
             return $response;
-        } catch (ClientException $exception) {
-            throw CouldNotSendNotification::clientError($exception);
+        } catch (RequestException $exception) {
+            throw CouldNotSendNotification::requestException($exception);
         } catch (Exception $exception) {
             throw CouldNotSendNotification::unexpectedException($exception);
         }
+    }
+
+    /**
+     * @return PendingRequest
+     */
+    protected function client(): PendingRequest
+    {
+        return Http::asJson()
+            ->baseUrl('https://exp.host/--/api/v2/push/send')
+            ->withToken($this->accessToken);
     }
 }

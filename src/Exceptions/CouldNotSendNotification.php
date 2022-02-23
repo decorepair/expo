@@ -4,6 +4,7 @@ namespace NotificationChannels\Expo\Exceptions;
 
 use Exception;
 use GuzzleHttp\Exception\ClientException;
+use Illuminate\Http\Client\RequestException;
 
 class CouldNotSendNotification extends \Exception
 {
@@ -78,16 +79,16 @@ class CouldNotSendNotification extends \Exception
      * Thrown if a 400-level Http error was encountered whilst attempting to deliver the
      * notification.
      *
-     * @param ClientException $exception
+     * @param RequestException $exception
      * @return static
      */
-    public static function clientError(ClientException $exception)
+    public static function requestException(RequestException $exception)
     {
-        if (! $exception->hasResponse()) {
+        if (! $exception->getMessage()) {
             return new static('Expo responded with an error but no response body was available');
         }
 
-        $statusCode = $exception->getResponse()->getStatusCode();
+        $statusCode = $exception->getCode();
         $description = $exception->getMessage();
 
         return new static(

@@ -3,6 +3,7 @@
 namespace NotificationChannels\Expo;
 
 use GuzzleHttp\Client as GuzzleClient;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\ServiceProvider;
 
 class ExpoServiceProvider extends ServiceProvider
@@ -12,17 +13,6 @@ class ExpoServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        $this->app->when(ExpoChannel::class)
-            ->needs(GuzzleClient::class)
-            ->give(function () {
-                $accessToken = config('expo.access_token');
-                if ($accessToken) {
-                    return new GuzzleClient(['headers' => ['Authorization' => "Bearer $accessToken"]]);
-                } else {
-                    return new GuzzleClient();
-                }
-            });
-
         $this->publishes([
             realpath(__DIR__.'/../config/expo.php') => config_path('expo.php'),
         ], 'config');
